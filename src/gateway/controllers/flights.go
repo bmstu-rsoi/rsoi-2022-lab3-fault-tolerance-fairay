@@ -23,6 +23,6 @@ func (ctrl *flightCtrl) fetch(w http.ResponseWriter, r *http.Request) {
 	queryParams := r.URL.Query()
 	page, _ := strconv.Atoi(queryParams.Get("page"))
 	page_size, _ := strconv.Atoi(queryParams.Get("size"))
-	data := ctrl.flights.Fetch(page, page_size)
+	data, _ := ctrl.flights.Fetch(page, page_size)
 	responses.JsonSuccess(w, data)
 }

@@ -31,8 +31,12 @@ func (model *TicketsM) FetchUser(username string) (*objects.UserInfoResponse, er
 	if err != nil {
 		return nil, err
 	}
-	flights := model.flights.Fetch(1, 100).Items
-	data.Tickets = objects.MakeTicketResponseArr(tickets, flights)
+
+	flights, err := model.flights.Fetch(1, 100)
+	if err != nil {
+		return nil, err
+	}
+	data.Tickets = objects.MakeTicketResponseArr(tickets, flights.Items)
 
 	privilege := model.privileges.Fetch(username)
 	data.Privilege = objects.PrivilegeShortInfo{
@@ -68,8 +72,11 @@ func (model *TicketsM) Fetch() ([]objects.TicketResponse, error) {
 		return nil, err
 	}
 
-	flights := model.flights.Fetch(1, 100).Items
-	return objects.MakeTicketResponseArr(tickets, flights), nil
+	flights, err := model.flights.Fetch(1, 100)
+	if err != nil {
+		return nil, err
+	}
+	return objects.MakeTicketResponseArr(tickets, flights.Items), nil
 }
 
 func (model *TicketsM) create(flight_number string, price int, username string) (*objects.TicketCreateResponse, error) {

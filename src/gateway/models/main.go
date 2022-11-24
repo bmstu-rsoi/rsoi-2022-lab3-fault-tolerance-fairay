@@ -1,6 +1,10 @@
 package models
 
-import "net/http"
+import (
+	"gateway/repository"
+	"gateway/utils"
+	"net/http"
+)
 
 type Models struct {
 	Flights    *FlightsM
@@ -12,7 +16,7 @@ func InitModels() *Models {
 	models := new(Models)
 	client := &http.Client{}
 
-	models.Flights = NewFlightsM(client)
+	models.Flights = NewFlightsM(repository.NewCBFlightsRep(utils.Config.FlightsEndpoint))
 	models.Privileges = NewPrivilegesM(client)
 	models.Tickets = NewTicketsM(client, models.Flights)
 
