@@ -71,14 +71,14 @@ type TicketResponse struct {
 }
 
 func MakeTicketResponseArr(tickets []Ticket, flights []FlightResponse) []TicketResponse {
-	flight_map := make(map[string]FlightResponse)
+	flightMap := make(map[string]FlightResponse)
 	for _, v := range flights {
-		flight_map[v.FlightNumber] = v
+		flightMap[v.FlightNumber] = v
 	}
 
 	data := make([]TicketResponse, len(tickets))
 	for k, v := range tickets {
-		flight := flight_map[v.FlightNumber]
+		flight := flightMap[v.FlightNumber]
 
 		data[k] = TicketResponse{
 			TicketUid:    v.TicketUid,

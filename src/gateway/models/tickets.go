@@ -1,31 +1,25 @@
 package models
 
 import (
-	"bytes"
-	"encoding/json"
-	"fmt"
 	"gateway/errors"
 	"gateway/objects"
 	"gateway/repository"
 	"gateway/utils"
-	"io/ioutil"
-	"net/http"
 )
 
 type TicketsM struct {
-	client *http.Client
-
+	tickets    repository.TicketsRep
 	flights    repository.FlightsRep
 	privileges repository.PrivilegesRep
 }
 
-func NewTicketsM(client *http.Client, flights repository.FlightsRep, privileges repository.PrivilegesRep) *TicketsM {
-	return &TicketsM{client, flights, privileges}
+func NewTicketsM(tickets repository.TicketsRep, flights repository.FlightsRep, privileges repository.PrivilegesRep) *TicketsM {
+	return &TicketsM{tickets, flights, privileges}
 }
 
 func (model *TicketsM) FetchUser(username string) (*objects.UserInfoResponse, error) {
 	data := new(objects.UserInfoResponse)
-	tickets, err := model.fetch(username)
+	tickets, err := model.tickets.GetAll(username)
 	if err != nil {
 		return nil, err
 	}
@@ -45,28 +39,8 @@ func (model *TicketsM) FetchUser(username string) (*objects.UserInfoResponse, er
 	return data, nil
 }
 
-func (model *TicketsM) fetch(username string) (objects.TicketArr, error) {
-	req, _ := http.NewRequest("GET", fmt.Sprintf("%s/api/v1/tickets", utils.Config.TicketsEndpoint), nil)
-	if username != "" {
-		req.Header.Set("X-User-Name", username)
-	}
-	resp, err := model.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	data := new(objects.TicketArr)
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	json.Unmarshal(body, data)
-	return *data, nil
-}
-
 func (model *TicketsM) Fetch() ([]objects.TicketResponse, error) {
-	tickets, err := model.fetch("")
+	tickets, err := model.tickets.GetAll("")
 	if err != nil {
 		return nil, err
 	}
@@ -78,29 +52,14 @@ func (model *TicketsM) Fetch() ([]objects.TicketResponse, error) {
 	return objects.MakeTicketResponseArr(tickets, flights.Items), nil
 }
 
-func (model *TicketsM) create(flight_number string, price int, username string) (*objects.TicketCreateResponse, error) {
-	req_body, _ := json.Marshal(&objects.TicketCreateRequest{FlightNumber: flight_number, Price: price})
-	req, _ := http.NewRequest("POST", fmt.Sprintf("%s/api/v1/tickets", utils.Config.TicketsEndpoint), bytes.NewBuffer(req_body))
-	req.Header.Add("X-User-Name", username)
-
-	if resp, err := model.client.Do(req); err != nil {
-		return nil, err
-	} else {
-		data := &objects.TicketCreateResponse{}
-		body, _ := ioutil.ReadAll(resp.Body)
-		json.Unmarshal(body, data)
-		return data, nil
-	}
-}
-
-func (model *TicketsM) Create(flight_number string, username string, price int, from_balance bool) (*objects.TicketPurchaseResponse, error) {
-	flight, err := model.flights.Find(flight_number)
+func (model *TicketsM) Create(flightNumber string, username string, price int, fromBalance bool) (*objects.TicketPurchaseResponse, error) {
+	flight, err := model.flights.Find(flightNumber)
 	if err != nil {
 		utils.Logger.Println(err.Error())
 		return nil, err
 	}
 
-	ticket, err := model.create(flight_number, price, username)
+	ticket, err := model.tickets.Create(flightNumber, price, username)
 	if err != nil {
 		utils.Logger.Println(err.Error())
 		return nil, err
@@ -109,7 +68,7 @@ func (model *TicketsM) Create(flight_number string, username string, price int, 
 	privilege, err := model.privileges.Add(username, &objects.AddHistoryRequest{
 		TicketUID:       ticket.TicketUid,
 		Price:           flight.Price,
-		PaidFromBalance: from_balance,
+		PaidFromBalance: fromBalance,
 	})
 	if err != nil {
 		utils.Logger.Println(err.Error())
@@ -119,21 +78,8 @@ func (model *TicketsM) Create(flight_number string, username string, price int, 
 	return objects.NewTicketPurchaseResponse(flight, ticket, privilege), nil
 }
 
-func (model *TicketsM) find(ticket_uid string) (*objects.Ticket, error) {
-	req, _ := http.NewRequest("GET", fmt.Sprintf("%s/api/v1/tickets/%s", utils.Config.TicketsEndpoint, ticket_uid), nil)
-	resp, err := model.client.Do(req)
-	if err != nil {
-		return nil, err
-	} else {
-		data := &objects.Ticket{}
-		body, _ := ioutil.ReadAll(resp.Body)
-		json.Unmarshal(body, data)
-		return data, nil
-	}
-}
-
-func (model *TicketsM) Find(ticket_uid string, username string) (*objects.TicketResponse, error) {
-	ticket, err := model.find(ticket_uid)
+func (model *TicketsM) Find(ticketUid string, username string) (*objects.TicketResponse, error) {
+	ticket, err := model.tickets.Find(ticketUid)
 	if err != nil {
 		return nil, err
 	} else if username != ticket.Username {
@@ -143,28 +89,21 @@ func (model *TicketsM) Find(ticket_uid string, username string) (*objects.Ticket
 	flight, err := model.flights.Find(ticket.FlightNumber)
 	if err != nil {
 		return nil, err
-	} else {
-		return objects.ToTicketResponce(ticket, flight), nil
 	}
+	return objects.ToTicketResponce(ticket, flight), nil
 }
 
-func (model *TicketsM) delete(ticket_uid string) error {
-	req, _ := http.NewRequest("DELETE", fmt.Sprintf("%s/api/v1/tickets/%s", utils.Config.TicketsEndpoint, ticket_uid), nil)
-	_, err := model.client.Do(req)
-	return err
-}
-
-func (model *TicketsM) Delete(ticket_uid string, username string) error {
-	ticket, err := model.find(ticket_uid)
+func (model *TicketsM) Delete(ticketUid string, username string) error {
+	ticket, err := model.tickets.Find(ticketUid)
 	if err != nil {
 		return err
 	} else if username != ticket.Username {
 		return errors.ForbiddenTicket
 	}
 
-	if err = model.delete(ticket_uid); err != nil {
+	if err = model.tickets.Delete(ticketUid); err != nil {
 		return err
 	}
 
-	return model.privileges.Delete(username, ticket_uid)
+	return model.privileges.Delete(username, ticketUid)
 }

@@ -3,7 +3,6 @@ package models
 import (
 	"gateway/repository"
 	"gateway/utils"
-	"net/http"
 )
 
 type Models struct {
@@ -13,15 +12,13 @@ type Models struct {
 }
 
 func InitModels() *Models {
-	models := new(Models)
-	client := &http.Client{}
-
 	flightsRep := repository.NewCBFlightsRep(utils.Config.FlightsEndpoint)
 	privilegesRep := repository.NewCBPrivilegesRep(utils.Config.PrivilegesEndpoint)
+	ticketsRep := repository.NewCBTicketsRep(utils.Config.TicketsEndpoint)
 
-	models.Flights = NewFlightsM(flightsRep)
-	models.Privileges = NewPrivilegesM(privilegesRep)
-	models.Tickets = NewTicketsM(client, flightsRep, privilegesRep)
-
-	return models
+	return &Models{
+		Flights:    NewFlightsM(flightsRep),
+		Privileges: NewPrivilegesM(privilegesRep),
+		Tickets:    NewTicketsM(ticketsRep, flightsRep, privilegesRep),
+	}
 }

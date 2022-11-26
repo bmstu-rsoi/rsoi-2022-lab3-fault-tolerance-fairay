@@ -13,10 +13,10 @@ func NewFlightsM(rep repository.FlightsRep) *FlightsM {
 	return &FlightsM{rep}
 }
 
-func (model *FlightsM) Fetch(page int, page_size int) (*objects.PaginationResponse, error) {
-	return model.rep.GetAll(page, page_size)
+func (model *FlightsM) Fetch(page int, pageSize int) (*objects.PaginationResponse, error) {
+	return model.rep.GetAll(page, pageSize)
 }
 
-func (model *FlightsM) Find(flight_number string) (*objects.FlightResponse, error) {
-	return model.rep.Find(flight_number)
+func (model *FlightsM) Find(flightNumber string) (*objects.FlightResponse, error) {
+	return model.rep.Find(flightNumber)
 }

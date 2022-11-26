@@ -58,11 +58,11 @@ func (rep *CBPrivilegesRep) GetAll(username string) (*objects.PrivilegeInfoRespo
 }
 
 func (rep *CBPrivilegesRep) Add(username string, request *objects.AddHistoryRequest) (*objects.AddHistoryResponce, error) {
-	req_body, err := json.Marshal(request)
+	reqBody, err := json.Marshal(request)
 	if err != nil {
 		return nil, err
 	}
-	req, _ := http.NewRequest("POST", fmt.Sprintf("%s/api/v1/history", rep.endpoint), bytes.NewBuffer(req_body))
+	req, _ := http.NewRequest("POST", fmt.Sprintf("%s/api/v1/history", rep.endpoint), bytes.NewBuffer(reqBody))
 	req.Header.Add("X-User-Name", username)
 
 	body, err := rep.cbExecute(req)

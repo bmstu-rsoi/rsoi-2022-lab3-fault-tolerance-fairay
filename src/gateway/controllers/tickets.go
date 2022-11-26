@@ -45,14 +45,14 @@ func (ctrl *ticketsCtrl) fetch(w http.ResponseWriter, r *http.Request) {
 }
 
 func (ctrl *ticketsCtrl) post(w http.ResponseWriter, r *http.Request) {
-	req_body := new(objects.TicketPurchaseRequest)
-	err := json.NewDecoder(r.Body).Decode(req_body)
+	reqBody := new(objects.TicketPurchaseRequest)
+	err := json.NewDecoder(r.Body).Decode(reqBody)
 	if err != nil {
 		responses.ValidationErrorResponse(w, err.Error())
 		return
 	}
 
-	data, err := ctrl.tickets.Create(req_body.FlightNumber, r.Header.Get("X-User-Name"), req_body.Price, req_body.PaidFromBalance)
+	data, err := ctrl.tickets.Create(reqBody.FlightNumber, r.Header.Get("X-User-Name"), reqBody.Price, reqBody.PaidFromBalance)
 	if err != nil {
 		responses.InternalError(w)
 	} else {
@@ -62,32 +62,32 @@ func (ctrl *ticketsCtrl) post(w http.ResponseWriter, r *http.Request) {
 
 func (ctrl *ticketsCtrl) get(w http.ResponseWriter, r *http.Request) {
 	urlParams := mux.Vars(r)
-	ticket_uid := urlParams["ticketUid"]
+	ticketUid := urlParams["ticketUid"]
 	username := r.Header.Get("X-User-Name")
 
-	data, err := ctrl.tickets.Find(ticket_uid, username)
+	data, err := ctrl.tickets.Find(ticketUid, username)
 	switch err {
 	case nil:
 		responses.JsonSuccess(w, data)
 	case errors.ForbiddenTicket:
 		responses.Forbidden(w)
 	default:
-		responses.RecordNotFound(w, ticket_uid)
+		responses.RecordNotFound(w, ticketUid)
 	}
 }
 
 func (ctrl *ticketsCtrl) delete(w http.ResponseWriter, r *http.Request) {
 	urlParams := mux.Vars(r)
-	ticket_uid := urlParams["ticketUid"]
+	ticketUid := urlParams["ticketUid"]
 	username := r.Header.Get("X-User-Name")
 
-	err := ctrl.tickets.Delete(ticket_uid, username)
+	err := ctrl.tickets.Delete(ticketUid, username)
 	switch err {
 	case nil:
 		responses.SuccessTicketDeletion(w)
 	case errors.ForbiddenTicket:
 		responses.Forbidden(w)
 	default:
-		responses.RecordNotFound(w, ticket_uid)
+		responses.RecordNotFound(w, ticketUid)
 	}
 }

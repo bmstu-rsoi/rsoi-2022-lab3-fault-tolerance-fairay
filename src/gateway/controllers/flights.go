@@ -22,7 +22,7 @@ func InitFlights(r *mux.Router, flights *models.FlightsM) {
 func (ctrl *flightCtrl) fetch(w http.ResponseWriter, r *http.Request) {
 	queryParams := r.URL.Query()
 	page, _ := strconv.Atoi(queryParams.Get("page"))
-	page_size, _ := strconv.Atoi(queryParams.Get("size"))
-	data, _ := ctrl.flights.Fetch(page, page_size)
+	pageSize, _ := strconv.Atoi(queryParams.Get("size"))
+	data, _ := ctrl.flights.Fetch(page, pageSize)
 	responses.JsonSuccess(w, data)
 }
