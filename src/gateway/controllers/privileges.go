@@ -19,6 +19,6 @@ func InitPrivileges(r *mux.Router, privileges *models.PrivilegesM) {
 }
 
 func (ctrl *privilegeCtrl) fetch(w http.ResponseWriter, r *http.Request) {
-	data := ctrl.privileges.Fetch(r.Header.Get("X-User-Name"))
+	data, _ := ctrl.privileges.Fetch(r.Header.Get("X-User-Name"))
 	responses.JsonSuccess(w, data)
 }

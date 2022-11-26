@@ -16,9 +16,12 @@ func InitModels() *Models {
 	models := new(Models)
 	client := &http.Client{}
 
-	models.Flights = NewFlightsM(repository.NewCBFlightsRep(utils.Config.FlightsEndpoint))
-	models.Privileges = NewPrivilegesM(client)
-	models.Tickets = NewTicketsM(client, models.Flights)
+	flightsRep := repository.NewCBFlightsRep(utils.Config.FlightsEndpoint)
+	privilegesRep := repository.NewCBPrivilegesRep(utils.Config.PrivilegesEndpoint)
+
+	models.Flights = NewFlightsM(flightsRep)
+	models.Privileges = NewPrivilegesM(privilegesRep)
+	models.Tickets = NewTicketsM(client, flightsRep, privilegesRep)
 
 	return models
 }

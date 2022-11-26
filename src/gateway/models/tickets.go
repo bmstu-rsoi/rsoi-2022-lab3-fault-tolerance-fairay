@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"gateway/errors"
 	"gateway/objects"
+	"gateway/repository"
 	"gateway/utils"
 	"io/ioutil"
 	"net/http"
@@ -14,15 +15,12 @@ import (
 type TicketsM struct {
 	client *http.Client
 
-	flights    *FlightsM
-	privileges *PrivilegesM
+	flights    repository.FlightsRep
+	privileges repository.PrivilegesRep
 }
 
-func NewTicketsM(client *http.Client, flights *FlightsM) *TicketsM {
-	return &TicketsM{
-		client:  client,
-		flights: flights,
-	}
+func NewTicketsM(client *http.Client, flights repository.FlightsRep, privileges repository.PrivilegesRep) *TicketsM {
+	return &TicketsM{client, flights, privileges}
 }
 
 func (model *TicketsM) FetchUser(username string) (*objects.UserInfoResponse, error) {
@@ -32,16 +30,17 @@ func (model *TicketsM) FetchUser(username string) (*objects.UserInfoResponse, er
 		return nil, err
 	}
 
-	flights, err := model.flights.Fetch(1, 100)
-	if err != nil {
-		return nil, err
+	flights, err := model.flights.GetAll(1, 100)
+	if err == nil {
+		data.Tickets = objects.MakeTicketResponseArr(tickets, flights.Items)
 	}
-	data.Tickets = objects.MakeTicketResponseArr(tickets, flights.Items)
 
-	privilege := model.privileges.Fetch(username)
-	data.Privilege = objects.PrivilegeShortInfo{
-		Balance: privilege.Balance,
-		Status:  privilege.Status,
+	privilege, err := model.privileges.GetAll(username)
+	if err == nil {
+		data.Privilege = objects.PrivilegeShortInfo{
+			Balance: privilege.Balance,
+			Status:  privilege.Status,
+		}
 	}
 	return data, nil
 }
@@ -72,7 +71,7 @@ func (model *TicketsM) Fetch() ([]objects.TicketResponse, error) {
 		return nil, err
 	}
 
-	flights, err := model.flights.Fetch(1, 100)
+	flights, err := model.flights.GetAll(1, 100)
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +106,7 @@ func (model *TicketsM) Create(flight_number string, username string, price int, 
 		return nil, err
 	}
 
-	privilege, err := model.privileges.AddTicket(username, &objects.AddHistoryRequest{
+	privilege, err := model.privileges.Add(username, &objects.AddHistoryRequest{
 		TicketUID:       ticket.TicketUid,
 		Price:           flight.Price,
 		PaidFromBalance: from_balance,
@@ -167,5 +166,5 @@ func (model *TicketsM) Delete(ticket_uid string, username string) error {
 		return err
 	}
 
-	return model.privileges.DeleteTicket(username, ticket_uid)
+	return model.privileges.Delete(username, ticket_uid)
 }

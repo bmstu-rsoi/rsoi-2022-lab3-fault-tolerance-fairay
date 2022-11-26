@@ -29,6 +29,18 @@ func NewCBFlightsRep(endpoint string) *CBFlightsRep {
 	return &CBFlightsRep{cb, endpoint, client}
 }
 
+func (rep *CBFlightsRep) cbExecute(req *http.Request) (interface{}, error) {
+	return rep.cb.Execute(func() (interface{}, error) {
+		resp, err := rep.client.Do(req)
+		if err != nil {
+			return nil, err
+		}
+
+		defer resp.Body.Close()
+		return ioutil.ReadAll(resp.Body)
+	})
+}
+
 func (rep *CBFlightsRep) GetAll(page int, page_size int) (*objects.PaginationResponse, error) {
 	req, _ := http.NewRequest("GET", fmt.Sprintf("%s/api/v1/flights", rep.endpoint), nil)
 	q := req.URL.Query()
@@ -36,14 +48,7 @@ func (rep *CBFlightsRep) GetAll(page int, page_size int) (*objects.PaginationRes
 	q.Add("size", fmt.Sprintf("%d", page_size))
 	req.URL.RawQuery = q.Encode()
 
-	body, err := rep.cb.Execute(func() (interface{}, error) {
-		resp, err := rep.client.Do(req)
-		if err != nil {
-			return nil, err
-		}
-		defer resp.Body.Close()
-		return ioutil.ReadAll(resp.Body)
-	})
+	body, err := rep.cbExecute(req)
 	if err != nil {
 		return nil, err
 	}
@@ -56,14 +61,7 @@ func (rep *CBFlightsRep) GetAll(page int, page_size int) (*objects.PaginationRes
 func (rep *CBFlightsRep) Find(flight_number string) (*objects.FlightResponse, error) {
 	req, _ := http.NewRequest("GET", fmt.Sprintf("%s/api/v1/flights/%s", rep.endpoint, flight_number), nil)
 
-	body, err := rep.cb.Execute(func() (interface{}, error) {
-		resp, err := http.DefaultClient.Do(req)
-		if err != nil {
-			return nil, err
-		}
-		defer resp.Body.Close()
-		return ioutil.ReadAll(resp.Body)
-	})
+	body, err := rep.cbExecute(req)
 	if err != nil {
 		return nil, err
 	}
