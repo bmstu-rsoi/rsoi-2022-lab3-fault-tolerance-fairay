@@ -12,8 +12,12 @@ import (
 
 func initControllers(r *mux.Router, models *models.Models) {
 	r.Use(utils.LogHandler)
-	api1R := r.PathPrefix("/api/v1/").Subrouter()
 
+	r.HandleFunc("/manage/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}).Methods("GET")
+
+	api1R := r.PathPrefix("/api/v1/").Subrouter()
 	InitFlights(api1R, models.Flights)
 	InitPrivileges(api1R, models.Privileges)
 	InitTickets(api1R, models.Tickets)
