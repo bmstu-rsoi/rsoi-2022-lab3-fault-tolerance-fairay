@@ -2,6 +2,7 @@ package repository
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"gateway/errors"
@@ -35,6 +36,10 @@ func NewCBTicketsRep(endpoint string) *CBTicketsRep {
 }
 
 func (rep *CBTicketsRep) cbExecute(req *http.Request) (interface{}, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+	req = req.WithContext(ctx)
+
 	body, err := rep.cb.Execute(func() (interface{}, error) {
 		resp, err := rep.client.Do(req)
 		if err != nil {
