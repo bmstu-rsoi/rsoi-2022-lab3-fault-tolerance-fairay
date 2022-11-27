@@ -7,7 +7,6 @@ import (
 	"gateway/errors"
 	"gateway/objects"
 	"io/ioutil"
-	"net"
 	"net/http"
 	"time"
 
@@ -46,7 +45,7 @@ func (rep *CBFlightsRep) cbExecute(req *http.Request) (interface{}, error) {
 		defer resp.Body.Close()
 		return ioutil.ReadAll(resp.Body)
 	})
-	if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
+	if err != nil {
 		err = errors.FlightUnavailable
 	}
 	return body, err
