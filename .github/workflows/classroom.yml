@@ -42,7 +42,7 @@ jobs:
         timeout-minutes: 5
         run: ./scripts/test-script.sh
         env:
-          VARIANT: 1
+          VARIANT: v1
           SERVICE_NAME: privileges
           PORT_NUMBER: 8050
 
