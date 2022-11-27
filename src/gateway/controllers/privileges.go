@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"gateway/controllers/responses"
+	"gateway/errors"
 	"gateway/models"
 
 	"net/http"
@@ -19,6 +20,13 @@ func InitPrivileges(r *mux.Router, privileges *models.PrivilegesM) {
 }
 
 func (ctrl *privilegeCtrl) fetch(w http.ResponseWriter, r *http.Request) {
-	data, _ := ctrl.privileges.Fetch(r.Header.Get("X-User-Name"))
-	responses.JsonSuccess(w, data)
+	data, err := ctrl.privileges.Fetch(r.Header.Get("X-User-Name"))
+	switch err {
+	case nil:
+		responses.JsonSuccess(w, data)
+	case errors.BonusUnavailable:
+		responses.ServiceUnavailable(w, err.Error())
+	default:
+		responses.InternalError(w)
+	}
 }

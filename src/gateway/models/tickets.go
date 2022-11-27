@@ -32,8 +32,8 @@ func (model *TicketsM) FetchUser(username string) (*objects.UserInfoResponse, er
 	privilege, err := model.privileges.GetAll(username)
 	if err == nil {
 		data.Privilege = objects.PrivilegeShortInfo{
-			Balance: privilege.Balance,
-			Status:  privilege.Status,
+			Balance: &privilege.Balance,
+			Status:  &privilege.Status,
 		}
 	}
 	return data, nil
@@ -47,7 +47,8 @@ func (model *TicketsM) Fetch() ([]objects.TicketResponse, error) {
 
 	flights, err := model.flights.GetAll(1, 100)
 	if err != nil {
-		return nil, err
+		utils.Logger.Println("flight service unavaliable")
+		flights = &objects.PaginationResponse{}
 	}
 	return objects.MakeTicketResponseArr(tickets, flights.Items), nil
 }
@@ -72,6 +73,7 @@ func (model *TicketsM) Create(flightNumber string, username string, price int, f
 	})
 	if err != nil {
 		utils.Logger.Println(err.Error())
+		model.tickets.Delete(ticket.TicketUid)
 		return nil, err
 	}
 
@@ -88,7 +90,8 @@ func (model *TicketsM) Find(ticketUid string, username string) (*objects.TicketR
 
 	flight, err := model.flights.Find(ticket.FlightNumber)
 	if err != nil {
-		return nil, err
+		utils.Logger.Println("flight service unavaliable")
+		flight = &objects.FlightResponse{}
 	}
 	return objects.ToTicketResponce(ticket, flight), nil
 }

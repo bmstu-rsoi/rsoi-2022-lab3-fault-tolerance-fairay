@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"gateway/errors"
 	"gateway/objects"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"time"
 
@@ -33,7 +35,7 @@ func NewCBTicketsRep(endpoint string) *CBTicketsRep {
 }
 
 func (rep *CBTicketsRep) cbExecute(req *http.Request) (interface{}, error) {
-	return rep.cb.Execute(func() (interface{}, error) {
+	body, err := rep.cb.Execute(func() (interface{}, error) {
 		resp, err := rep.client.Do(req)
 		if err != nil {
 			return nil, err
@@ -42,6 +44,10 @@ func (rep *CBTicketsRep) cbExecute(req *http.Request) (interface{}, error) {
 		defer resp.Body.Close()
 		return ioutil.ReadAll(resp.Body)
 	})
+	if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
+		err = errors.FlightUnavailable
+	}
+	return body, err
 }
 
 func (rep *CBTicketsRep) GetAll(username string) (objects.TicketArr, error) {

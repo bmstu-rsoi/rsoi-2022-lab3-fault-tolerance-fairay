@@ -3,8 +3,10 @@ package repository
 import (
 	"encoding/json"
 	"fmt"
+	"gateway/errors"
 	"gateway/objects"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"time"
 
@@ -30,7 +32,7 @@ func NewCBFlightsRep(endpoint string) *CBFlightsRep {
 }
 
 func (rep *CBFlightsRep) cbExecute(req *http.Request) (interface{}, error) {
-	return rep.cb.Execute(func() (interface{}, error) {
+	body, err := rep.cb.Execute(func() (interface{}, error) {
 		resp, err := rep.client.Do(req)
 		if err != nil {
 			return nil, err
@@ -39,6 +41,10 @@ func (rep *CBFlightsRep) cbExecute(req *http.Request) (interface{}, error) {
 		defer resp.Body.Close()
 		return ioutil.ReadAll(resp.Body)
 	})
+	if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
+		err = errors.FlightUnavailable
+	}
+	return body, err
 }
 
 func (rep *CBFlightsRep) GetAll(page int, pageSize int) (*objects.PaginationResponse, error) {

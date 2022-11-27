@@ -27,6 +27,18 @@ func BadRequest(w http.ResponseWriter, msg string) {
 	json.NewEncoder(w).Encode(msg)
 }
 
+type unavailableErrorResponse struct {
+	Message string `json:"message"`
+}
+
+func ServiceUnavailable(w http.ResponseWriter, service string) {
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(http.StatusServiceUnavailable)
+
+	resp := &unavailableErrorResponse{fmt.Sprintf("%s unavailable", service)}
+	json.NewEncoder(w).Encode(resp)
+}
+
 func Forbidden(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusForbidden)
 }

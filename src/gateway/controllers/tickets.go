@@ -53,10 +53,13 @@ func (ctrl *ticketsCtrl) post(w http.ResponseWriter, r *http.Request) {
 	}
 
 	data, err := ctrl.tickets.Create(reqBody.FlightNumber, r.Header.Get("X-User-Name"), reqBody.Price, reqBody.PaidFromBalance)
-	if err != nil {
-		responses.InternalError(w)
-	} else {
+	switch err {
+	case nil:
 		responses.JsonSuccess(w, data)
+	case errors.FlightUnavailable, errors.BonusUnavailable, errors.TicketsUnavailable:
+		responses.ServiceUnavailable(w, err.Error())
+	default:
+		responses.InternalError(w)
 	}
 }
 

@@ -12,8 +12,8 @@ type BalanceHistory struct {
 }
 
 type PrivilegeShortInfo struct {
-	Balance int    `json:"balance"`
-	Status  string `json:"status"`
+	Balance *int    `json:"balance,omitempty"`
+	Status  *string `json:"status,omitempty"`
 }
 
 type PrivilegeInfoResponse struct {

@@ -4,11 +4,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"gateway/errors"
 	"gateway/objects"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"time"
 
+	"github.com/avast/retry-go/v4"
 	"github.com/sony/gobreaker"
 )
 
@@ -32,7 +35,7 @@ func NewCBPrivilegesRep(endpoint string) *CBPrivilegesRep {
 }
 
 func (rep *CBPrivilegesRep) cbExecute(req *http.Request) (interface{}, error) {
-	return rep.cb.Execute(func() (interface{}, error) {
+	body, err := rep.cb.Execute(func() (interface{}, error) {
 		resp, err := rep.client.Do(req)
 		if err != nil {
 			return nil, err
@@ -41,6 +44,10 @@ func (rep *CBPrivilegesRep) cbExecute(req *http.Request) (interface{}, error) {
 		defer resp.Body.Close()
 		return ioutil.ReadAll(resp.Body)
 	})
+	if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
+		err = errors.BonusUnavailable
+	}
+	return body, err
 }
 
 func (rep *CBPrivilegesRep) GetAll(username string) (*objects.PrivilegeInfoResponse, error) {
@@ -78,6 +85,11 @@ func (rep *CBPrivilegesRep) Add(username string, request *objects.AddHistoryRequ
 func (rep *CBPrivilegesRep) Delete(username string, ticketUid string) error {
 	req, _ := http.NewRequest("DELETE", fmt.Sprintf("%s/api/v1/history/%s", rep.endpoint, ticketUid), nil)
 	req.Header.Add("X-User-Name", username)
-	_, err := rep.cbExecute(req)
-	return err
+	go retry.Do(func() error {
+		fmt.Println("Trying to delete")
+		_, err := rep.cbExecute(req)
+		return err
+	}, retry.Delay(15*time.Second))
+
+	return nil
 }
